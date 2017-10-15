@@ -43,6 +43,22 @@ func (c *Context) Get(name string) (value interface{}) {
 	return c.data.Get(name)
 }
 
+// GetHeader returns value from request headers.
+func (c *Context) GetHeader(key string) string {
+	return string(c.RequestCtx.Request.Header.Peek(key))
+}
+
+// Header is a intelligent shortcut for c.RequestCtx.Response.Header.Set(key, value).
+// It writes a header in the response. If value == "", this method removes the header
+// `c.RequestCtx.Response.Header.Del(key)`
+func (c *Context) Header(key, value string) {
+	if len(value) == 0 {
+		c.RequestCtx.Response.Header.Del(key)
+	} else {
+		c.RequestCtx.Response.Header.Set(key, value)
+	}
+}
+
 // GetEx returns the named data item and info about data item exists.
 func (c *Context) GetEx(name string) (value interface{}, ok bool) {
 	return c.data.GetEx(name)
@@ -73,6 +89,14 @@ func (c *Context) Next() {
 // Abort is normally used when a handler handles the request normally and wants to skip the rest of the handlers.
 // If a handler wants to indicate an error condition, it should simply return the error without calling Abort.
 func (c *Context) Abort() {
+	c.index = len(c.handlers)
+}
+
+// AbortWithStatus calls `Abort()` and writes the headers with the specified status code.
+// For example, a failed attempt to authenticate a request could use:
+//     context.AbortWithStatus(401).
+func (c *Context) AbortWithStatus(statusCode int) {
+	c.SetStatusCode(statusCode)
 	c.index = len(c.handlers)
 }
 

@@ -9,7 +9,7 @@
 **Tokay** is small and fast web framework written in Go (Golang) for the high-performance [fasthttp](https://github.com/valyala/fasthttp) server.
 The package has the following features:
 
-* middleware pipeline architecture, similar to that of the [Express framework](http://expressjs.com).
+* middleware pipeline architecture, similar to that of the **Gin-gonic** framework.
 * extremely fast request routing with zero dynamic memory allocation
 * modular code organization through route grouping
 * flexible URL path matching, supporting URL parameters and regular expressions
@@ -40,13 +40,13 @@ import (
 )
 
 func main() {
-	router := tokay.New()
+	r := tokay.New()
 	
-	router.GET("/", func(c *tokay.Context) {
+	r.GET("/", func(c *tokay.Context) {
 		c.String(200, "Hello, world!")
 	})
 	
-	panic(router.Run(":8080"))
+	panic(r.Run(":8080"))
 }
 ```
 
@@ -87,30 +87,30 @@ process as fast as working with a hash table, thanks to the inspiration from [ht
 To add a new route and its handlers to the routing table, call the `To` method like the following:
   
 ```go
-router := tokay.New()
-router.To("GET", "/users", m1, m2, h1)
-router.To("POST", "/users", m1, m2, h2)
+r := tokay.New()
+r.To("GET", "/users", m1, m2, h1)
+r.To("POST", "/users", m1, m2, h2)
 ```
 
 You can also use shortcut methods, such as `Get`, `Post`, `Put`, etc., which are named after the HTTP method names:
  
 ```go
-router.GET("/users", m1, m2, h1)
-router.POST("/users", m1, m2, h2)
+r.GET("/users", m1, m2, h1)
+r.POST("/users", m1, m2, h2)
 ```
 
 If you have multiple routes with the same URL path but different HTTP methods, like the above example, you can 
 chain them together as follows,
 
 ```go
-router.GET("/users", m1, m2, h1).POST(m1, m2, h2)
+r.GET("/users", m1, m2, h1).POST(m1, m2, h2)
 ```
 
 If you want to use the same set of handlers to handle the same URL path but different HTTP methods, you can take
 the following shortcut:
 
 ```go
-router.To("GET,POST", "/users", m1, m2, h)
+r.To("GET,POST", "/users", m1, m2, h)
 ```
 
 A route may contain parameter tokens which are in the format of `<name:pattern>`, where `name` stands for the parameter
@@ -125,9 +125,9 @@ can be used to match any number of arbitrary characters. Below are some examples
 When a URL path matches a route, the matching parameters on the URL path can be accessed via `Context.Param()`:
 
 ```go
-router := tokay.New()
+r := tokay.New()
 
-router.GET("/users/<username>", func (c *tokay.Context) {
+r.GET("/users/<username>", func (c *tokay.Context) {
 	fmt.Fprintf(c, "Name: %v", c.Param("username"))
 })
 ```
@@ -139,8 +139,8 @@ Route group is a way of grouping together the routes which have the same route p
 share the same handlers that are registered with the group via its `Use` method. For example,
 
 ```go
-router := tokay.New()
-api := router.Group("/api")
+r := tokay.New()
+api := r.Group("/api")
 api.Use(m1, m2)
 api.GET("/users", h1).POST(h2)
 api.PUT("/users/<id>", h3).DELETE(h4)
@@ -164,10 +164,10 @@ Route groups can be nested. That is, a route group can create a child group by c
 serves as the top level route group. A child group inherits the handlers registered with its parent group. For example, 
 
 ```go
-router := tokay.New()
-router.Use(m1)
+r := tokay.New()
+r.Use(m1)
 
-api := router.Group("/api")
+api := r.Group("/api")
 api.Use(m2)
 
 users := api.Group("/users")
@@ -184,11 +184,11 @@ the `PUT /api/users/<id>` route is associated with the handlers `m1`, `m2`, `m3`
 Router manages the routing table and dispatches incoming requests to appropriate handlers. A router instance is created
 by calling the `tokay.New()` method.
 
-To hook up router with fasthttp, use the following code:
+To hook up engine with fasthttp, use the following code:
 
 ```go
-router := tokay.New()
-panic(router.Run(":8080"))
+r := tokay.New()
+panic(r.Run(":8080"))
 ```
 
 
@@ -206,6 +206,25 @@ A handler can call `Context.Next()` to explicitly execute the rest of the unexec
 they finish execution. For example, a response compression handler may start the output buffer, call `Context.Next()`,
 and then compress and send the output to response.
 
+### BasicAuth() middleware
+tokay.BasicAuth returns a Basic HTTP Authorization middleware. It takes even number of string arguments (username1, password1, username2, password2, etc...)
+
+```go
+r := tokay.New()
+
+// Group using tokay.BasicAuth() middleware
+authorized := r.Group("/admin", tokay.BasicAuth("foo", "bar", "austin", "1234", "lena", "hello2"))
+
+authorized.GET("/secrets", func(c *tokay.Context) {
+    // get user, it was set by the BasicAuth middleware
+    user := c.Get(tokay.AuthUserKey).(string)
+    c.String(200, "Hello "+user+"!")
+})
+
+// Listen and serve on 0.0.0.0:8080
+panic(r.Run(":8000"))
+
+```
 
 ### Context
 
