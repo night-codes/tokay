@@ -3,6 +3,7 @@ package tokay
 import (
 	"fmt"
 	"github.com/valyala/fasthttp"
+	"strings"
 )
 
 // SerializeFunc serializes the given data of arbitrary type into a byte array.
@@ -26,6 +27,36 @@ func (c *Context) Engine() *Engine {
 	return c.engine
 }
 
+// ClientIP returns the real client IP. It parses X-Real-IP and X-Forwarded-For in order to
+// work properly with reverse-proxies such us: nginx or haproxy. Use X-Forwarded-For before
+// X-Real-Ip as nginx uses X-Real-Ip with the proxy's IP.
+func (c *Context) ClientIP() string {
+	if c.engine.AppEngine {
+		if addr := c.GetHeader("X-Appengine-Remote-Addr"); addr != "" {
+			return addr
+		}
+	}
+
+	clientIP := c.GetHeader("X-Forwarded-For")
+	if index := strings.IndexByte(clientIP, ','); index >= 0 {
+		clientIP = clientIP[0:index]
+	}
+	clientIP = strings.TrimSpace(clientIP)
+	if len(clientIP) > 0 {
+		return clientIP
+	}
+	clientIP = strings.TrimSpace(c.GetHeader("X-Real-Ip"))
+	if len(clientIP) > 0 {
+		return clientIP
+	}
+
+	if ip := c.RemoteIP().String(); len(ip) > 0 {
+		return ip
+	}
+
+	return ""
+}
+
 // Param returns the named parameter value that is found in the URL path matching the current route.
 // If the named parameter cannot be found, an empty string will be returned.
 func (c *Context) Param(name string) string {
@@ -45,17 +76,17 @@ func (c *Context) Get(name string) (value interface{}) {
 
 // GetHeader returns value from request headers.
 func (c *Context) GetHeader(key string) string {
-	return string(c.RequestCtx.Request.Header.Peek(key))
+	return string(c.Request.Header.Peek(key))
 }
 
-// Header is a intelligent shortcut for c.RequestCtx.Response.Header.Set(key, value).
+// Header is a intelligent shortcut for c.Response.Header.Set(key, value).
 // It writes a header in the response. If value == "", this method removes the header
-// `c.RequestCtx.Response.Header.Del(key)`
+// `c.Response.Header.Del(key)`
 func (c *Context) Header(key, value string) {
 	if len(value) == 0 {
-		c.RequestCtx.Response.Header.Del(key)
+		c.Response.Header.Del(key)
 	} else {
-		c.RequestCtx.Response.Header.Set(key, value)
+		c.Response.Header.Set(key, value)
 	}
 }
 
