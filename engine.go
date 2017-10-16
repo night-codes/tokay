@@ -19,6 +19,7 @@ type (
 	Engine struct {
 		RouterGroup
 		Render           *render.Render
+		AppEngine        bool
 		pool             sync.Pool
 		routes           map[string]*Route
 		stores           map[string]routeStore
@@ -35,24 +36,30 @@ type (
 	}
 )
 
-// Methods lists all supported HTTP methods by Engine.
-var Methods = []string{
-	"CONNECT",
-	"DELETE",
-	"GET",
-	"HEAD",
-	"OPTIONS",
-	"PATCH",
-	"POST",
-	"PUT",
-	"TRACE",
-}
+var (
+	// AppEngine usage marker
+	AppEngine bool
+
+	// Methods lists all supported HTTP methods by Engine.
+	Methods = []string{
+		"HEAD",
+		"GET",
+		"POST",
+		"CONNECT",
+		"DELETE",
+		"OPTIONS",
+		"PATCH",
+		"PUT",
+		"TRACE",
+	}
+)
 
 // New creates a new Engine object.
 func New() *Engine {
 	r := &Engine{
-		routes: make(map[string]*Route),
-		stores: make(map[string]routeStore),
+		AppEngine: AppEngine,
+		routes:    make(map[string]*Route),
+		stores:    make(map[string]routeStore),
 	}
 	r.Render = render.New()
 	r.RouterGroup = *newRouteGroup("", r, make([]Handler, 0))
