@@ -26,12 +26,6 @@ func (a authPairs) search(authValue string) (string, bool) {
 	return "", false
 }
 
-func assert(guard bool, text string) {
-	if !guard {
-		panic(text)
-	}
-}
-
 // BasicAuth returns a Basic HTTP Authorization middleware.
 // It takes even number of string arguments (username1, password1, username2, password2, etc...)
 func BasicAuth(accounts ...string) Handler {
@@ -50,11 +44,15 @@ func BasicAuth(accounts ...string) Handler {
 
 func processAccounts(accounts ...string) authPairs {
 	accLen := len(accounts)
-	assert(accLen > 1 && accLen%2 == 0, "The number of arguments must be even.")
+	if accLen < 2 || accLen%2 != 0 {
+		panic("The number of arguments must be even.")
+	}
 	pairs := make(authPairs, 0, accLen/2)
 	for i := 0; i < accLen; i += 2 {
 		user, password := accounts[i], accounts[i+1]
-		assert(user != "", "User can not be empty")
+		if user == "" {
+			panic("User can not be empty")
+		}
 		value := "Basic " + base64.StdEncoding.EncodeToString([]byte(user+":"+password))
 		pairs = append(pairs, authPair{
 			Value: value,
