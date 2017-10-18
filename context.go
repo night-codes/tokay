@@ -178,22 +178,34 @@ func Serialize(data interface{}) (bytes []byte, err error) {
 	return nil, nil
 }
 
+// JSON serializes the given struct as JSON into the response body.
+// It also sets the Content-Type as "application/json".
 func (c *Context) JSON(status int, obj interface{}) {
 	c.engine.Render.JSON(c.RequestCtx, status, obj)
 }
 
+// JSONP marshals the given interface object and writes the JSON response.
 func (c *Context) JSONP(status int, callbackName string, obj interface{}) {
 	c.engine.Render.JSONP(c.RequestCtx, status, callbackName, obj)
 }
 
+// HTML renders the HTTP template specified by its file name.
+// It also updates the HTTP code and sets the Content-Type as "text/html".
 func (c *Context) HTML(status int, name string, obj interface{}) {
 	c.engine.Render.HTML(c.RequestCtx, status, name, obj)
 }
 
+// XML serializes the given struct as XML into the response body.
+// It also sets the Content-Type as "application/xml".
 func (c *Context) XML(status int, obj interface{}) {
 	c.engine.Render.XML(c.RequestCtx, status, obj)
 }
 
-func (c *Context) String(status int, text string) {
-	c.engine.Render.Text(c.RequestCtx, status, text)
+// String writes the given string into the response body.
+func (c *Context) String(code int, format string, values ...interface{}) {
+	if len(values) > 0 {
+		fmt.Fprintf(c, format, values[0])
+	} else {
+		fmt.Fprintf(c, format)
+	}
 }
