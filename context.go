@@ -3,6 +3,7 @@ package tokay
 import (
 	"fmt"
 	"github.com/valyala/fasthttp"
+	"net/url"
 	"strings"
 )
 
@@ -162,6 +163,15 @@ func (c *Context) init(ctx *fasthttp.RequestCtx) {
 	c.Serialize = Serialize
 }
 
+// Cookie returns the named cookie provided in the request or
+// ErrNoCookie if not found. And return the named cookie is unescaped.
+// If multiple cookies match the given name, only one cookie will
+// be returned.
+func (c *Context) Cookie(name string) string {
+	val, _ := url.QueryUnescape(string(c.Request.Header.Cookie(name)))
+	return val
+}
+
 // Serialize converts the given data into a byte array.
 // If the data is neither a byte array nor a string, it will call fmt.Sprint to convert it into a string.
 func Serialize(data interface{}) (bytes []byte, err error) {
@@ -208,4 +218,9 @@ func (c *Context) String(code int, format string, values ...interface{}) {
 	} else {
 		fmt.Fprintf(c, format)
 	}
+}
+
+// ContentType returns the Content-Type header of the request.
+func (c *Context) ContentType() string {
+	return filterFlags(c.GetHeader("Content-Type"))
 }
