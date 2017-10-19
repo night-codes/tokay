@@ -312,6 +312,17 @@ func (c *Context) PostForm(key string) string {
 	return string(c.PostArgs().Peek(key))
 }
 
+// PostFormDefault returns the specified key from a POST urlencoded form or
+// multipart form when it exists, otherwise it returns the specified defaultValue string.
+// See: PostForm() and PostFormEx() for further information.
+func (c *Context) PostFormDefault(key, defaultValue string) string {
+	args := c.PostArgs()
+	if args.Has(key) {
+		return string(args.Peek(key))
+	}
+	return defaultValue
+}
+
 // PostFormArray returns a slice of strings for a given form key. The length
 // of the slice depends on the number of params with the given key.
 func (c *Context) PostFormArray(key string) []string {
@@ -350,6 +361,17 @@ func (c *Context) PostFormArrayEx(key string) ([]string, bool) {
 // returns an empty string "".
 func (c *Context) Query(key string) string {
 	return string(c.QueryArgs().Peek(key))
+}
+
+// QueryDefault returns the keyed url query value if it exists, otherwise
+// it returns the specified defaultValue string.
+// See: Query() and QueryEx() for further information.
+func (c *Context) QueryDefault(key, defaultValue string) string {
+	args := c.QueryArgs()
+	if args.Has(key) {
+		return string(args.Peek(key))
+	}
+	return defaultValue
 }
 
 // QueryArray returns a slice of strings for a given query key.
