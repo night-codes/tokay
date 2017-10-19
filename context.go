@@ -69,6 +69,11 @@ func (c *Context) SetCookie(name, value string, path, domain string, secure, htt
 	c.Response.Header.SetCookie(cookie)
 }
 
+// File sends local file contents from the given path as response body.
+func (c *Context) File(filepath string) {
+	c.SendFile(filepath)
+}
+
 // ClientIP returns the real client IP. It parses X-Real-IP and X-Forwarded-For in order to
 // work properly with reverse-proxies such us: nginx or haproxy. Use X-Forwarded-For before
 // X-Real-Ip as nginx uses X-Real-Ip with the proxy's IP.
