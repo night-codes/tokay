@@ -70,6 +70,11 @@ func (c *Context) SetCookie(name, value string, path, domain string, secure, htt
 	c.Response.Header.SetCookie(cookie)
 }
 
+// RemoveCookie instructs the client to remove the given cookie.
+func (c *Context) RemoveCookie(name string) {
+	c.RequestCtx.Response.Header.DelClientCookie(name)
+}
+
 // File sends local file contents from the given path as response body.
 func (c *Context) File(filepath string) {
 	c.SendFile(filepath)
@@ -435,4 +440,29 @@ func (c *Context) QueryArrayEx(key string) ([]string, bool) {
 		return ret, true
 	}
 	return ret, false
+}
+
+// Referer returns request referer.
+func (c *Context) Referer() string {
+	return string(c.RequestCtx.Referer())
+}
+
+// Method returns request method.
+func (c *Context) Method() string {
+	return string(c.RequestCtx.Method())
+}
+
+// Path returns requested path.
+func (c *Context) Path() string {
+	return string(c.RequestCtx.Path())
+}
+
+// Host returns Host header value.
+func (c *Context) Host() string {
+	return string(c.RequestCtx.Host())
+}
+
+// RequestURI returns RequestURI.
+func (c *Context) RequestURI() string {
+	return string(c.RequestCtx.RequestURI())
 }
