@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 // SerializeFunc serializes the given data of arbitrary type into a byte array.
@@ -28,6 +29,44 @@ type Context struct {
 // Engine returns the Engine that is handling the incoming HTTP request.
 func (c *Context) Engine() *Engine {
 	return c.engine
+}
+
+// SetContentType sets response Content-Type.
+func (c *Context) SetContentType(contentType string) {
+	c.RequestCtx.SetContentType(contentType)
+}
+
+// SetStatusCode sets response status code.
+func (c *Context) SetStatusCode(statusCode int) {
+	c.RequestCtx.SetStatusCode(statusCode)
+}
+
+// SetCookie adds a Set-Cookie header to the ResponseWriter's headers.
+// The provided cookie must have a valid Name.
+// Paramethers `path` and `domain` can be empty strings
+// Set expiration time to CookieExpireDelete for expiring (deleting) the cookie on the client.
+// By default cookie lifetime is limited by browser session.
+func (c *Context) SetCookie(name, value string, path, domain string, secure, httpOnly bool, expire ...time.Time) {
+	if path == "" {
+		path = "/"
+	}
+
+	cookie := fasthttp.AcquireCookie()
+	cookie.SetKey(name)
+	cookie.SetValue(url.QueryEscape(value))
+	cookie.SetPath(path)
+	cookie.SetSecure(secure)
+	cookie.SetHTTPOnly(httpOnly)
+
+	if len(expire) == 1 {
+		cookie.SetExpire(expire[0])
+	}
+
+	if domain != "" {
+		cookie.SetDomain(domain)
+	}
+
+	c.Response.Header.SetCookie(cookie)
 }
 
 // ClientIP returns the real client IP. It parses X-Real-IP and X-Forwarded-For in order to
@@ -58,6 +97,11 @@ func (c *Context) ClientIP() string {
 	}
 
 	return ""
+}
+
+// Redirect returns a HTTP redirect to the specific location.
+func (c *Context) Redirect(statusCode int, uri string) {
+	c.RequestCtx.Redirect(uri, statusCode)
 }
 
 // Param returns the named parameter value that is found in the URL path matching the current route.
@@ -208,29 +252,30 @@ func Serialize(data interface{}) (bytes []byte, err error) {
 
 // JSON serializes the given struct as JSON into the response body.
 // It also sets the Content-Type as "application/json".
-func (c *Context) JSON(status int, obj interface{}) {
-	c.engine.Render.JSON(c.RequestCtx, status, obj)
+func (c *Context) JSON(statusCode int, obj interface{}) {
+	c.engine.Render.JSON(c.RequestCtx, statusCode, obj)
 }
 
 // JSONP marshals the given interface object and writes the JSON response.
-func (c *Context) JSONP(status int, callbackName string, obj interface{}) {
-	c.engine.Render.JSONP(c.RequestCtx, status, callbackName, obj)
+func (c *Context) JSONP(statusCode int, callbackName string, obj interface{}) {
+	c.engine.Render.JSONP(c.RequestCtx, statusCode, callbackName, obj)
 }
 
 // HTML renders the HTTP template specified by its file name.
 // It also updates the HTTP code and sets the Content-Type as "text/html".
-func (c *Context) HTML(status int, name string, obj interface{}) {
-	c.engine.Render.HTML(c.RequestCtx, status, name, obj)
+func (c *Context) HTML(statusCode int, name string, obj interface{}) {
+	c.engine.Render.HTML(c.RequestCtx, statusCode, name, obj)
 }
 
 // XML serializes the given struct as XML into the response body.
 // It also sets the Content-Type as "application/xml".
-func (c *Context) XML(status int, obj interface{}) {
-	c.engine.Render.XML(c.RequestCtx, status, obj)
+func (c *Context) XML(statusCode int, obj interface{}) {
+	c.engine.Render.XML(c.RequestCtx, statusCode, obj)
 }
 
 // String writes the given string into the response body.
-func (c *Context) String(code int, format string, values ...interface{}) {
+func (c *Context) String(statusCode int, format string, values ...interface{}) {
+	c.SetStatusCode(statusCode)
 	if len(values) > 0 {
 		fmt.Fprintf(c, format, values[0])
 	} else {
@@ -238,7 +283,99 @@ func (c *Context) String(code int, format string, values ...interface{}) {
 	}
 }
 
+// Data writes some data into the body stream and updates the HTTP code.
+func (c *Context) Data(statusCode int, contentType string, data []byte) {
+	c.SetStatusCode(statusCode)
+	c.SetContentType(contentType)
+	c.Write(data)
+}
+
+// Body returns request body
+// The returned body is valid until the request modification.
+func (c *Context) Body() []byte {
+	return c.Request.Body()
+}
+
 // ContentType returns the Content-Type header of the request.
 func (c *Context) ContentType() string {
 	return filterFlags(c.GetHeader("Content-Type"))
+}
+
+// PostForm returns the specified key from a POST urlencoded form or
+// multipart form when it exists, otherwise it returns an empty string "".
+func (c *Context) PostForm(key string) string {
+	return string(c.PostArgs().Peek(key))
+}
+
+// PostFormArray returns a slice of strings for a given form key. The length
+// of the slice depends on the number of params with the given key.
+func (c *Context) PostFormArray(key string) []string {
+	var ret []string
+	retBytes := c.PostArgs().PeekMulti(key)
+	for k := range retBytes {
+		ret = append(ret, string(retBytes[k]))
+	}
+	return ret
+}
+
+// PostFormEx is like PostForm(key). It returns the specified key from a POST
+// urlencoded form or multipart form when it exists `(value, true)` (even when
+// the value is an empty string), otherwise it returns ("", false).
+func (c *Context) PostFormEx(key string) (string, bool) {
+	args := c.PostArgs()
+	return string(args.Peek(key)), args.Has(key)
+}
+
+// PostFormArrayEx returns a slice of strings for a given form key and
+// a boolean value whether at least one value exists for the given key.
+func (c *Context) PostFormArrayEx(key string) ([]string, bool) {
+	var ret []string
+	args := c.PostArgs()
+	if args.Has(key) {
+		retBytes := args.PeekMulti(key)
+		for k := range retBytes {
+			ret = append(ret, string(retBytes[k]))
+		}
+		return ret, true
+	}
+	return ret, false
+}
+
+// Query returns the keyed url query value if it exists, otherwise it
+// returns an empty string "".
+func (c *Context) Query(key string) string {
+	return string(c.QueryArgs().Peek(key))
+}
+
+// QueryArray returns a slice of strings for a given query key.
+// The length of the slice depends on the number of params with the given key.
+func (c *Context) QueryArray(key string) []string {
+	var ret []string
+	retBytes := c.QueryArgs().PeekMulti(key)
+	for k := range retBytes {
+		ret = append(ret, string(retBytes[k]))
+	}
+	return ret
+}
+
+// QueryEx is like Query(), it returns the keyed url query value if it exists `(value, true)`
+// (even when the value is an empty string), otherwise it returns `("", false)`.
+func (c *Context) QueryEx(key string) (string, bool) {
+	args := c.QueryArgs()
+	return string(args.Peek(key)), args.Has(key)
+}
+
+// QueryArrayEx returns a slice of strings for a given query key, plus a boolean value
+// whether at least one value exists for the given key.
+func (c *Context) QueryArrayEx(key string) ([]string, bool) {
+	var ret []string
+	args := c.QueryArgs()
+	if args.Has(key) {
+		retBytes := args.PeekMulti(key)
+		for k := range retBytes {
+			ret = append(ret, string(retBytes[k]))
+		}
+		return ret, true
+	}
+	return ret, false
 }

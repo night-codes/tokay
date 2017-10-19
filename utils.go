@@ -1,8 +1,17 @@
 package tokay
 
 import (
+	"github.com/valyala/fasthttp"
 	"os"
 	"path"
+)
+
+var (
+	// CookieExpireDelete may be set on Cookie.Expire for expiring the given cookie.
+	CookieExpireDelete = fasthttp.CookieExpireDelete
+
+	// CookieExpireUnlimited indicates that the cookie doesn't expire.
+	CookieExpireUnlimited = fasthttp.CookieExpireUnlimited
 )
 
 func filterFlags(content string) string {
