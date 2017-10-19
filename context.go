@@ -3,6 +3,7 @@ package tokay
 import (
 	"fmt"
 	"github.com/valyala/fasthttp"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strings"
@@ -72,6 +73,25 @@ func (c *Context) SetCookie(name, value string, path, domain string, secure, htt
 // File sends local file contents from the given path as response body.
 func (c *Context) File(filepath string) {
 	c.SendFile(filepath)
+}
+
+// FormFile returns uploaded file associated with the given multipart form key.
+// The file is automatically deleted after returning from RequestHandler, so either
+// move or copy uploaded file into new place if you want retaining it.
+//
+// Use SaveFormFile function for permanently saving uploaded file.
+func (c *Context) FormFile(name string) (*multipart.FileHeader, error) {
+	return c.RequestCtx.FormFile(name)
+}
+
+// SaveFormFile saves uploaded file associated with the given multipart
+// form key under the given filename path.
+func (c *Context) SaveFormFile(name, path string) error {
+	if fh, err := c.FormFile(name); fh != nil && err == nil {
+		return fasthttp.SaveMultipartFile(fh, path)
+	} else {
+		return err
+	}
 }
 
 // ClientIP returns the real client IP. It parses X-Real-IP and X-Forwarded-For in order to
@@ -166,6 +186,11 @@ func (c *Context) Next() {
 	for n := len(c.handlers); c.index < n; c.index++ {
 		c.handlers[c.index](c)
 	}
+}
+
+// Error sets response status code to the given value and sets response body to the given message.
+func (c *Context) Error(msg string, statusCode int) {
+	c.RequestCtx.Error(msg, statusCode)
 }
 
 // Abort skips the rest of the handlers associated with the current route.
