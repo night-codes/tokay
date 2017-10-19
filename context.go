@@ -3,6 +3,7 @@ package tokay
 import (
 	"fmt"
 	"github.com/valyala/fasthttp"
+	"net/http"
 	"net/url"
 	"strings"
 )
@@ -16,6 +17,7 @@ type Context struct {
 	Serialize SerializeFunc // the function serializing the given data of arbitrary type into a byte array.
 
 	engine   *Engine
+	aborted  bool
 	pnames   []string  // list of route parameter names
 	pvalues  []string  // list of parameter values corresponding to pnames
 	data     dataMap   // data items managed by Get and Set
@@ -121,6 +123,7 @@ func (c *Context) Next() {
 // Abort is normally used when a handler handles the request normally and wants to skip the rest of the handlers.
 // If a handler wants to indicate an error condition, it should simply return the error without calling Abort.
 func (c *Context) Abort() {
+	c.aborted = true
 	c.index = len(c.handlers)
 }
 
@@ -129,7 +132,22 @@ func (c *Context) Abort() {
 //     context.AbortWithStatus(401).
 func (c *Context) AbortWithStatus(statusCode int) {
 	c.SetStatusCode(statusCode)
-	c.index = len(c.handlers)
+	c.Abort()
+}
+
+// AbortWithError calls `AbortWithStatus()` and `Error()` internally.
+func (c *Context) AbortWithError(statusCode int, err error) {
+	if err != nil {
+		c.Error(err.Error(), statusCode)
+	} else {
+		c.Error(http.StatusText(statusCode), statusCode)
+	}
+	c.Abort()
+}
+
+// IsAborted returns true if the current context was aborted.
+func (c *Context) IsAborted() bool {
+	return c.aborted
 }
 
 // URL creates a URL using the named route and the parameter values.
