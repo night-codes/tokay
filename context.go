@@ -146,6 +146,11 @@ func (c *Context) Get(name string) (value interface{}) {
 	return c.data.Get(name)
 }
 
+// MultipartForm is the parsed multipart form, including file uploads.
+func (c *Context) MultipartForm() (*multipart.Form, error) {
+	return c.RequestCtx.MultipartForm()
+}
+
 // GetHeader returns value from request headers.
 func (c *Context) GetHeader(key string) string {
 	return string(c.Request.Header.Peek(key))
