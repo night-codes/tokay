@@ -1,6 +1,7 @@
 package tokay
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/valyala/fasthttp"
 	"mime/multipart"
@@ -465,4 +466,47 @@ func (c *Context) Host() string {
 // RequestURI returns RequestURI.
 func (c *Context) RequestURI() string {
 	return string(c.RequestCtx.RequestURI())
+}
+
+// BindPostForm binds the passed struct pointer with JSON request body data
+func (c *Context) BindJSON(obj interface{}) error {
+	if err := json.Unmarshal(c.Response.Body(), obj); err != nil {
+		return err
+	}
+	return nil
+}
+
+// BindPostForm binds the passed struct pointer with XML request body data
+func (c *Context) BindXML(obj interface{}) error {
+	if err := json.Unmarshal(c.Response.Body(), obj); err != nil {
+		return err
+	}
+	return nil
+}
+
+// BindPostForm binds the passed struct pointer with form data
+func (c *Context) BindPostForm(obj interface{}) error {
+	return mapArgs(obj, c.PostArgs())
+}
+
+// BindQuery binds the passed struct pointer with Query data
+func (c *Context) BindQuery(obj interface{}) error {
+	return mapArgs(obj, c.QueryArgs())
+}
+
+// Bind checks the Content-Type to select a binding engine automatically,
+// depending the "Content-Type" header different bindings are used.
+func (c *Context) Bind(obj interface{}) error {
+	if c.Method() == "GET" {
+		return c.BindQuery(obj)
+	}
+
+	switch c.ContentType() {
+	case "application/json":
+		return c.BindJSON(obj)
+	case "application/xml", "text/xml":
+		return c.BindXML(obj)
+	default:
+		return c.BindPostForm(obj)
+	}
 }

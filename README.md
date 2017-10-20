@@ -1,8 +1,10 @@
 ![Tokay](https://cdn.rawgit.com/night-codes/9160052050046367b8cd329c0250531d/raw/72544777a52ff1e8d60cdbcd7c504c440544b9a3/tokey.svg)
-
-
 [![GoDoc](https://godoc.org/github.com/night-codes/tokay?status.png)](https://godoc.org/github.com/night-codes/tokay)
 [![Go Report](http://goreportcard.com/badge/night-codes/tokay)](http://goreportcard.com/report/night-codes/tokay)
+[![github issues](https://img.shields.io/github/issues/night-codes/tokay.svg)](https://github.com/night-codes/tokay/issues?q=is%3Aopen+is%3Aissue)
+[![github closed issues](https://img.shields.io/github/issues-closed-raw/night-codes/tokay.svg)](https://github.com/night-codes/tokay/issues?q=is%3Aissue+is%3Aclosed)
+[![release](https://img.shields.io/github/release/night-codes/tokay.svg)](https://github.com/night-codes/tokay/releases)
+
 
 ## Description
 
@@ -207,7 +209,7 @@ they finish execution. For example, a response compression handler may start the
 and then compress and send the output to response.
 
 ### BasicAuth() middleware
-tokay.BasicAuth returns a Basic HTTP Authorization middleware. It takes even number of string arguments (username1, password1, username2, password2, etc...)
+BasicAuth method returns a Basic HTTP Authorization middleware. It takes even number of string arguments (username1, password1, username2, password2, etc...)
 
 ```go
 r := tokay.New()
