@@ -2,7 +2,9 @@ package tokay
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
+	"github.com/night-codes/govalidator"
 	"github.com/valyala/fasthttp"
 	"mime/multipart"
 	"net/http"
@@ -468,30 +470,33 @@ func (c *Context) RequestURI() string {
 	return string(c.RequestCtx.RequestURI())
 }
 
-// BindPostForm binds the passed struct pointer with JSON request body data
-func (c *Context) BindJSON(obj interface{}) error {
-	if err := json.Unmarshal(c.Response.Body(), obj); err != nil {
+// binding validate
+func validate(err error, obj interface{}) error {
+	if err != nil {
 		return err
 	}
-	return nil
+	_, err = govalidator.ValidateStruct(obj)
+	return err
+}
+
+// BindPostForm binds the passed struct pointer with JSON request body data
+func (c *Context) BindJSON(obj interface{}) error {
+	return validate(json.Unmarshal(c.Response.Body(), obj), obj)
 }
 
 // BindPostForm binds the passed struct pointer with XML request body data
 func (c *Context) BindXML(obj interface{}) error {
-	if err := json.Unmarshal(c.Response.Body(), obj); err != nil {
-		return err
-	}
-	return nil
+	return validate(xml.Unmarshal(c.Response.Body(), obj), obj)
 }
 
 // BindPostForm binds the passed struct pointer with form data
 func (c *Context) BindPostForm(obj interface{}) error {
-	return mapArgs(obj, c.PostArgs())
+	return validate(mapArgs(obj, c.PostArgs()), obj)
 }
 
 // BindQuery binds the passed struct pointer with Query data
 func (c *Context) BindQuery(obj interface{}) error {
-	return mapArgs(obj, c.QueryArgs())
+	return validate(mapArgs(obj, c.QueryArgs()), obj)
 }
 
 // Bind checks the Content-Type to select a binding engine automatically,
