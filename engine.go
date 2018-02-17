@@ -20,14 +20,15 @@ type (
 	// Engine manages routes and dispatches HTTP requests to the handlers of the matching routes.
 	Engine struct {
 		RouterGroup
-		Render           *render.Render
-		AppEngine        bool
-		pool             sync.Pool
-		routes           map[string]*Route
-		stores           map[string]routeStore
-		maxParams        int
-		notFound         []Handler
-		notFoundHandlers []Handler
+		Render                *render.Render
+		AppEngine             bool
+		pool                  sync.Pool
+		routes                map[string]*Route
+		stores                map[string]routeStore
+		maxParams             int
+		notFound              []Handler
+		notFoundHandlers      []Handler
+		RedirectTrailingSlash bool
 	}
 
 	// routeStore stores route paths and the corresponding handlers.
@@ -59,11 +60,12 @@ var (
 // New creates a new Engine object.
 func New() *Engine {
 	engine := &Engine{
-		AppEngine: AppEngine,
-		routes:    make(map[string]*Route),
-		stores:    make(map[string]routeStore),
+		AppEngine:             AppEngine,
+		routes:                make(map[string]*Route),
+		stores:                make(map[string]routeStore),
+		Render:                render.New(),
+		RedirectTrailingSlash: true,
 	}
-	engine.Render = render.New()
 	engine.RouterGroup = *newRouteGroup("", engine, make([]Handler, 0))
 	engine.NotFound(MethodNotAllowedHandler, NotFoundHandler)
 	engine.pool.New = func() interface{} {
@@ -194,6 +196,9 @@ func (engine *Engine) findAllowedMethods(path string) map[string]bool {
 
 // NotFoundHandler returns a 404 HTTP error indicating a request has no matching route.
 func NotFoundHandler(c *Context) {
+	if c.engine.RedirectTrailingSlash && redirectTrailingSlash(c) {
+		return
+	}
 	c.String(http.StatusNotFound, http.StatusText(http.StatusNotFound))
 }
 
@@ -219,4 +224,37 @@ func MethodNotAllowedHandler(c *Context) {
 	}
 	c.Abort()
 	return
+}
+
+func redirectTrailingSlash(c *Context) bool {
+	path := c.Path()
+	fmt.Println(1, path)
+	statusCode := 301 // Permanent redirect, request with GET method
+	if c.Method() != "GET" {
+		statusCode = 307
+	}
+	if len(path) == 0 {
+		c.Redirect(statusCode, "/")
+		return true
+	}
+
+	pathSpl := strings.Split(path, "/")
+	d := 1
+	if path[len(path)-1] == '/' && len(pathSpl) > 1 {
+		d = 2
+	}
+	hasdot := strings.Index(pathSpl[len(pathSpl)-d], ".") != -1
+
+	if path[len(path)-1] != '/' && !hasdot {
+		path = path + "/"
+		c.Redirect(statusCode, path)
+		return true
+	}
+	if path[len(path)-1] == '/' && hasdot {
+		path = path[:len(path)-1]
+		c.Redirect(statusCode, path)
+		return true
+	}
+
+	return false
 }

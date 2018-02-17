@@ -90,6 +90,9 @@ func (r *RouterGroup) Group(path string, handlers ...Handler) *RouterGroup {
 		handlers = make([]Handler, len(r.handlers))
 		copy(handlers, r.handlers)
 	}
+	if path[0] != '/' {
+		path = "/" + path
+	}
 	return newRouteGroup(r.path+path, r.engine, handlers)
 }
 
