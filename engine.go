@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"reflect"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -24,18 +26,12 @@ type (
 		AppEngine             bool
 		pool                  sync.Pool
 		routes                map[string]*Route
-		stores                map[string]routeStore
+		stores                storesMap
 		maxParams             int
 		notFound              []Handler
 		notFoundHandlers      []Handler
+		Debug                 bool
 		RedirectTrailingSlash bool
-	}
-
-	// routeStore stores route paths and the corresponding handlers.
-	routeStore interface {
-		Add(key string, data interface{}) int
-		Get(key string, pvalues []string) (data interface{}, pnames []string)
-		String() string
 	}
 )
 
@@ -62,7 +58,7 @@ func New() *Engine {
 	engine := &Engine{
 		AppEngine:             AppEngine,
 		routes:                make(map[string]*Route),
-		stores:                make(map[string]routeStore),
+		stores:                *newStoresMap(),
 		Render:                render.New(),
 		RedirectTrailingSlash: true,
 	}
@@ -130,11 +126,13 @@ func (engine *Engine) RunUnix(addr string, mode os.FileMode, message ...string) 
 
 // HandleRequest handles the HTTP request.
 func (engine *Engine) HandleRequest(ctx *fasthttp.RequestCtx) {
+	start := time.Now()
 	c := engine.pool.Get().(*Context)
 	c.init(ctx)
 	c.handlers, c.pnames = engine.find(string(ctx.Method()), string(ctx.Path()), c.pvalues)
 	c.Next()
 	engine.pool.Put(c)
+	engine.debug(fmt.Sprintf("%-21s | %d | %9v | %-7s %-25s ", time.Now().Format("2006/01/02 - 15:04:05"), c.Response.StatusCode(), time.Since(start), string(ctx.Method()), string(ctx.Path())))
 }
 
 // Route returns the named route.
@@ -162,10 +160,13 @@ func (engine *Engine) handleError(c *Context, err error) {
 }
 
 func (engine *Engine) add(method, path string, handlers []Handler) {
-	store := engine.stores[method]
+	for _, h := range handlers {
+		engine.debug(fmt.Sprintf("%-7s %-25s -->", method, path), runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name())
+	}
+	store := engine.stores.Get(method)
 	if store == nil {
 		store = newStore()
-		engine.stores[method] = store
+		engine.stores.Set(method, store)
 	}
 	if n := store.Add(path, handlers); n > engine.maxParams {
 		engine.maxParams = n
@@ -174,7 +175,7 @@ func (engine *Engine) add(method, path string, handlers []Handler) {
 
 func (engine *Engine) find(method, path string, pvalues []string) (handlers []Handler, pnames []string) {
 	var hh interface{}
-	if store := engine.stores[method]; store != nil {
+	if store := engine.stores.Get(method); store != nil {
 		hh, pnames = store.Get(path, pvalues)
 	}
 	if hh != nil {
@@ -186,12 +187,18 @@ func (engine *Engine) find(method, path string, pvalues []string) (handlers []Ha
 func (engine *Engine) findAllowedMethods(path string) map[string]bool {
 	methods := make(map[string]bool)
 	pvalues := make([]string, engine.maxParams)
-	for m, store := range engine.stores {
+	engine.stores.Range(func(m string, store routeStore) {
 		if handlers, _ := store.Get(path, pvalues); handlers != nil {
 			methods[m] = true
 		}
-	}
+	})
 	return methods
+}
+
+func (engine *Engine) debug(text ...interface{}) {
+	if engine.Debug {
+		Debug.Println(text...)
+	}
 }
 
 // NotFoundHandler returns a 404 HTTP error indicating a request has no matching route.
@@ -228,7 +235,6 @@ func MethodNotAllowedHandler(c *Context) {
 
 func redirectTrailingSlash(c *Context) bool {
 	path := c.Path()
-	fmt.Println(1, path)
 	statusCode := 301 // Permanent redirect, request with GET method
 	if c.Method() != "GET" {
 		statusCode = 307
@@ -246,13 +252,11 @@ func redirectTrailingSlash(c *Context) bool {
 	hasdot := strings.Index(pathSpl[len(pathSpl)-d], ".") != -1
 
 	if path[len(path)-1] != '/' && !hasdot {
-		path = path + "/"
-		c.Redirect(statusCode, path)
+		c.Redirect(statusCode, path+"/")
 		return true
 	}
 	if path[len(path)-1] == '/' && hasdot {
-		path = path[:len(path)-1]
-		c.Redirect(statusCode, path)
+		c.Redirect(statusCode, path[:len(path)-1])
 		return true
 	}
 

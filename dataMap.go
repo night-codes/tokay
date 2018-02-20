@@ -9,6 +9,10 @@ type dataMap struct {
 	M map[string]interface{}
 }
 
+func newDataMap() *dataMap {
+	return &dataMap{M: make(map[string]interface{})}
+}
+
 func (m *dataMap) Copy() (c map[string]interface{}) {
 	c = make(map[string]interface{}, len(m.M))
 

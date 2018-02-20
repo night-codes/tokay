@@ -21,9 +21,19 @@ func newRouteGroup(path string, engine *Engine, handlers []Handler) *RouterGroup
 	}
 }
 
+// Path returns RouterGroup fullpath
+func (r *RouterGroup) Path() (path string) {
+	return r.path
+}
+
 // GET adds a GET route to the engine with the given route path and handlers.
 func (r *RouterGroup) GET(path string, handlers ...Handler) *Route {
 	return newRoute(path, r).GET(handlers...)
+}
+
+// WEBSOCKET adds a WEBSOCKET route to the engine with the given route path and handlers.
+func (r *RouterGroup) WEBSOCKET(path string, handlers ...Handler) *Route {
+	return newRoute(path, r).WEBSOCKET(handlers...)
 }
 
 // POST adds a POST route to the engine with the given route path and handlers.
@@ -90,7 +100,7 @@ func (r *RouterGroup) Group(path string, handlers ...Handler) *RouterGroup {
 		handlers = make([]Handler, len(r.handlers))
 		copy(handlers, r.handlers)
 	}
-	if path[0] != '/' {
+	if path == "" || path[0] != '/' {
 		path = "/" + path
 	}
 	return newRouteGroup(r.path+path, r.engine, handlers)
@@ -111,16 +121,20 @@ func (r *RouterGroup) Static(path, root string, compress ...bool) *Route {
 	if len(compress) == 0 {
 		compress = append(compress, true)
 	}
+	if path == "" || path[len(path)-1] != '/' {
+		path += "/"
+	}
+
 	group := r.Group(path)
 	handler := (&fasthttp.FS{
 		Root:     root,
 		Compress: compress[0],
 		PathRewrite: func(ctx *fasthttp.RequestCtx) []byte {
-			return bytes.TrimPrefix(ctx.Request.RequestURI(), []byte(group.path))
+			return append([]byte{'/'}, bytes.TrimPrefix(ctx.Request.RequestURI(), []byte(group.path))...)
 		},
 	}).NewRequestHandler()
 
-	return newRoute("/*", group).To("GET,HEAD", func(c *Context) {
+	return newRoute("*", group).To("GET,HEAD", func(c *Context) {
 		handler(c.RequestCtx)
 	})
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"github.com/night-codes/govalidator"
+	"github.com/night-codes/tokay-websocket"
 	"github.com/valyala/fasthttp"
 	"mime/multipart"
 	"net/http"
@@ -23,11 +24,12 @@ type Context struct {
 
 	engine   *Engine
 	aborted  bool
-	pnames   []string  // list of route parameter names
-	pvalues  []string  // list of parameter values corresponding to pnames
-	data     dataMap   // data items managed by Get and Set
-	index    int       // the index of the currently executing handler in handlers
-	handlers []Handler // the handlers associated with the current route
+	pnames   []string        // list of route parameter names
+	pvalues  []string        // list of parameter values corresponding to pnames
+	data     dataMap         // data items managed by Get and Set
+	index    int             // the index of the currently executing handler in handlers
+	handlers []Handler       // the handlers associated with the current route
+	WSConn   *websocket.Conn // websocket connection
 }
 
 // Engine returns the Engine that is handling the incoming HTTP request.
@@ -81,6 +83,27 @@ func (c *Context) RemoveCookie(name string) {
 // File sends local file contents from the given path as response body.
 func (c *Context) File(filepath string) {
 	c.SendFile(filepath)
+}
+
+// Websocket upgrades the HTTP server connection to the WebSocket protocol.
+//     conn, err := c.Websocket() // by default buffers size == 4096
+//     conn, err := c.Websocket(2048) // readBufSize & writeBufSize := 2048
+//     conn, err := c.Websocket(2048, 1024) // readBufSize := 2048, writeBufSize := 1024
+func (c *Context) Websocket(fn func(), bufferSizes ...int) error {
+	if len(bufferSizes) == 0 {
+		bufferSizes = append(bufferSizes, 4096, 4096)
+	} else if len(bufferSizes) == 1 {
+		bufferSizes = append(bufferSizes, bufferSizes[0])
+	}
+
+	if err := websocket.Upgrade(c.RequestCtx, func(conn *websocket.Conn) {
+		c.WSConn = conn
+		fn()
+	}, bufferSizes[0], bufferSizes[1]); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // FormFile returns uploaded file associated with the given multipart form key.
@@ -263,7 +286,7 @@ func (c *Context) WriteData(data interface{}) (err error) {
 // init sets the request and response of the context and resets all other properties.
 func (c *Context) init(ctx *fasthttp.RequestCtx) {
 	c.RequestCtx = ctx
-	c.data = dataMap{M: make(map[string]interface{})}
+	c.data = *newDataMap()
 	c.index = -1
 	c.Serialize = Serialize
 }
