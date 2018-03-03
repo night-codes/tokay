@@ -126,13 +126,21 @@ func (engine *Engine) RunUnix(addr string, mode os.FileMode, message ...string) 
 
 // HandleRequest handles the HTTP request.
 func (engine *Engine) HandleRequest(ctx *fasthttp.RequestCtx) {
+	ws := false
 	start := time.Now()
 	c := engine.pool.Get().(*Context)
 	c.init(ctx)
-	c.handlers, c.pnames = engine.find(string(ctx.Method()), string(ctx.Path()), c.pvalues)
-	c.Next()
-	engine.pool.Put(c)
-	engine.debug(fmt.Sprintf("%-21s | %d | %9v | %-7s %-25s ", time.Now().Format("2006/01/02 - 15:04:05"), c.Response.StatusCode(), time.Since(start), string(ctx.Method()), string(ctx.Path())))
+	c.handlers, c.pnames, ws = engine.find(string(ctx.Method()), string(ctx.Path()), c.pvalues)
+	fin := func() {
+		c.Next()
+		engine.pool.Put(c)
+		engine.debug(fmt.Sprintf("%-21s | %d | %9v | %-7s %-25s ", time.Now().Format("2006/01/02 - 15:04:05"), c.Response.StatusCode(), time.Since(start), string(ctx.Method()), string(ctx.Path())))
+	}
+	if ws {
+		c.Websocket(fin)
+		return
+	}
+	fin()
 }
 
 // Route returns the named route.
@@ -173,15 +181,22 @@ func (engine *Engine) add(method, path string, handlers []Handler) {
 	}
 }
 
-func (engine *Engine) find(method, path string, pvalues []string) (handlers []Handler, pnames []string) {
+func (engine *Engine) find(method, path string, pvalues []string) (handlers []Handler, pnames []string, ws bool) {
 	var hh interface{}
 	if store := engine.stores.Get(method); store != nil {
-		hh, pnames = store.Get(path, pvalues)
+		if hh, pnames = store.Get(path, pvalues); hh != nil {
+			return hh.([]Handler), pnames, false
+		}
 	}
-	if hh != nil {
-		return hh.([]Handler), pnames
+	if method == "GET" {
+		if store := engine.stores.Get("WEBSOCKET"); store != nil {
+			if hh, pnames = store.Get(path, pvalues); hh != nil {
+				return hh.([]Handler), pnames, true
+			}
+		}
 	}
-	return engine.notFoundHandlers, pnames
+
+	return engine.notFoundHandlers, pnames, false
 }
 
 func (engine *Engine) findAllowedMethods(path string) map[string]bool {
