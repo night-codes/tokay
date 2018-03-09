@@ -7,10 +7,10 @@ import (
 )
 
 var (
-	Trace   = lg.New(ioutil.Discard, "[TRACE] ", lg.Ldate|lg.Ltime|lg.Lshortfile)
-	Debug   = lg.New(os.Stdout, "[Tokay] ", 0)
-	Info    = lg.New(os.Stdout, "[INFO] ", lg.Ldate|lg.Ltime|lg.Lshortfile)
-	Warning = lg.New(os.Stdout, "[WARNING] ", lg.Ldate|lg.Ltime|lg.Lshortfile)
-	Error   = lg.New(os.Stderr, "[ERROR] ", lg.Ldate|lg.Ltime|lg.Lshortfile)
-	log     = Info
+	trace    = lg.New(ioutil.Discard, "[TRACE] ", lg.Ldate|lg.Ltime|lg.Lshortfile)
+	debug    = lg.New(os.Stdout, "[Tokay] ", 0)
+	info     = lg.New(os.Stdout, "[INFO] ", lg.Ldate|lg.Ltime|lg.Lshortfile)
+	warning  = lg.New(os.Stdout, "[WARNING] ", lg.Ldate|lg.Ltime|lg.Lshortfile)
+	errorlog = lg.New(os.Stderr, "[ERROR] ", lg.Ldate|lg.Ltime|lg.Lshortfile)
+	log      = info
 )

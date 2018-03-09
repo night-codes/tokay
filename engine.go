@@ -2,6 +2,7 @@ package tokay
 
 import (
 	"fmt"
+	"html/template"
 	"net/http"
 	"os"
 	"reflect"
@@ -16,22 +17,58 @@ import (
 )
 
 type (
+	// Render is interface for engine.Render
+	Render interface {
+		JSON(*fasthttp.RequestCtx, int, interface{}) error
+		JSONP(*fasthttp.RequestCtx, int, string, interface{}) error
+		HTML(*fasthttp.RequestCtx, int, string, interface{}, ...string) error
+		XML(*fasthttp.RequestCtx, int, interface{}) error
+	}
+
 	// Handler is the function for handling HTTP requests.
 	Handler func(*Context)
 
 	// Engine manages routes and dispatches HTTP requests to the handlers of the matching routes.
 	Engine struct {
 		RouterGroup
-		Render                *render.Render
-		AppEngine             bool
-		pool                  sync.Pool
-		routes                map[string]*Route
-		stores                storesMap
-		maxParams             int
-		notFound              []Handler
-		notFoundHandlers      []Handler
-		Debug                 bool
+		// Default render engine
+		Render Render
+		// AppEngine usage marker
+		AppEngine bool
+		// Print debug messages to log
+		Debug bool
+
+		// Enables automatic redirection if the current route can't be matched but a
+		// handler for the path with the trailing slash exists.
+		// For example if /foo is requested but a route only exists for /foo/, the
+		// client is redirected to /foo/ with http status code 301 for GET requests
+		// and 307 for all other request methods.
 		RedirectTrailingSlash bool
+
+		pool             sync.Pool
+		routes           map[string]*Route
+		stores           storesMap
+		maxParams        int
+		notFound         []Handler
+		notFoundHandlers []Handler
+	}
+
+	// Config is a struct for specifying configuration options for the tokay.Engine object.
+	Config struct {
+		// Enables automatic redirection if the current route can't be matched but a handler for the path with the trailing slash exists.
+		RedirectTrailingSlash bool
+		// Print debug messages to log
+		Debug bool
+		// Extensions to parse template files from. Defaults to [".html"].
+		TemplatesExtensions []string
+		// Directories to load templates. Default is ["templates"].
+		TemplatesDirs []string
+		// Left templates delimiter, defaults to {{.
+		LeftTemplateDelimiter string
+		// Right templates delimiter, defaults to }}.
+		RightTemplateDelimiter string
+		// Funcs is a slice of FuncMaps to apply to the template upon compilation. This is useful for helper functions. Defaults to [].
+		TemplatesFuncs template.FuncMap
 	}
 )
 
@@ -54,13 +91,35 @@ var (
 )
 
 // New creates a new Engine object.
-func New() *Engine {
+func New(config ...*Config) *Engine {
+	var r *render.Render
+	var cfgRedirectTrailingSlash bool
+	var cfgDebug bool
+	if len(config) != 0 && config[0] != nil {
+		if len(config[0].TemplatesDirs) != 0 {
+			r = render.New(&render.Config{
+				Directories: config[0].TemplatesDirs,
+				Extensions:  config[0].TemplatesExtensions,
+				Delims: render.Delims{
+					Left: config[0].LeftTemplateDelimiter,
+				},
+			})
+		}
+		cfgRedirectTrailingSlash = config[0].RedirectTrailingSlash
+		cfgDebug = config[0].Debug
+	} else {
+		r = render.New()
+	}
+
+	debug.Println("Render object created" + r.Templates.DefinedTemplates())
+
 	engine := &Engine{
 		AppEngine:             AppEngine,
 		routes:                make(map[string]*Route),
 		stores:                *newStoresMap(),
-		Render:                render.New(),
-		RedirectTrailingSlash: true,
+		Render:                r,
+		RedirectTrailingSlash: cfgRedirectTrailingSlash,
+		Debug: cfgDebug,
 	}
 	engine.RouterGroup = *newRouteGroup("", engine, make([]Handler, 0))
 	engine.NotFound(MethodNotAllowedHandler, NotFoundHandler)
@@ -212,7 +271,7 @@ func (engine *Engine) findAllowedMethods(path string) map[string]bool {
 
 func (engine *Engine) debug(text ...interface{}) {
 	if engine.Debug {
-		Debug.Println(text...)
+		debug.Println(text...)
 	}
 }
 
