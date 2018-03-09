@@ -43,3 +43,11 @@ func (m *storesMap) Get(key string) routeStore {
 
 	return v
 }
+
+func (m *storesMap) Count() int {
+	m.RLock()
+	count := len(m.M)
+	m.RUnlock()
+
+	return count
+}
