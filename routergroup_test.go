@@ -11,51 +11,51 @@ func TestRouteGroupTo(t *testing.T) {
 	router := New()
 	for _, method := range Methods {
 		store := newMockStore()
-		router.stores[method] = store
+		router.stores.Set(method, store)
 	}
 	group := newRouteGroup("/admin", router, nil)
 
 	group.Any("/users")
 	for _, method := range Methods {
-		assert.Equal(t, 1, router.stores[method].(*mockStore).count, "router.stores["+method+"].count@1 =")
+		assert.Equal(t, 1, router.stores.Get(method).(*mockStore).count, "router.stores.Get("+method+").count@1 =")
 	}
 
 	group.To("GET", "/articles")
-	assert.Equal(t, 2, router.stores["GET"].(*mockStore).count, "router.stores[GET].count@2 =")
-	assert.Equal(t, 1, router.stores["POST"].(*mockStore).count, "router.stores[POST].count@2 =")
+	assert.Equal(t, 2, router.stores.Get("GET").(*mockStore).count, "router.stores.Get(GET).count@2 =")
+	assert.Equal(t, 1, router.stores.Get("POST").(*mockStore).count, "router.stores.Get(POST).count@2 =")
 
 	group.To("GET,POST", "/comments")
-	assert.Equal(t, 3, router.stores["GET"].(*mockStore).count, "router.stores[GET].count@3 =")
-	assert.Equal(t, 2, router.stores["POST"].(*mockStore).count, "router.stores[POST].count@3 =")
+	assert.Equal(t, 3, router.stores.Get("GET").(*mockStore).count, "router.stores.Get(GET).count@3 =")
+	assert.Equal(t, 2, router.stores.Get("POST").(*mockStore).count, "router.stores.Get(POST).count@3 =")
 }
 
 func TestRouteGroupMethods(t *testing.T) {
 	router := New()
 	for _, method := range Methods {
 		store := newMockStore()
-		router.stores[method] = store
-		assert.Equal(t, 0, store.count, "router.stores["+method+"].count =")
+		router.stores.Set(method, store)
+		assert.Equal(t, 0, store.count, "router.stores.Get("+method+").count =")
 	}
 	group := newRouteGroup("/admin", router, nil)
 
 	group.GET("/users")
-	assert.Equal(t, 1, router.stores["GET"].(*mockStore).count, "router.stores[GET].count =")
+	assert.Equal(t, 1, router.stores.Get("GET").(*mockStore).count, "router.stores.Get(GET).count =")
 	group.POST("/users")
-	assert.Equal(t, 1, router.stores["POST"].(*mockStore).count, "router.stores[POST].count =")
+	assert.Equal(t, 1, router.stores.Get("POST").(*mockStore).count, "router.stores.Get(POST).count =")
 	group.PATCH("/users")
-	assert.Equal(t, 1, router.stores["PATCH"].(*mockStore).count, "router.stores[PATCH].count =")
+	assert.Equal(t, 1, router.stores.Get("PATCH").(*mockStore).count, "router.stores.Get(PATCH).count =")
 	group.PUT("/users")
-	assert.Equal(t, 1, router.stores["PUT"].(*mockStore).count, "router.stores[PUT].count =")
+	assert.Equal(t, 1, router.stores.Get("PUT").(*mockStore).count, "router.stores.Get(PUT).count =")
 	group.DELETE("/users")
-	assert.Equal(t, 1, router.stores["DELETE"].(*mockStore).count, "router.stores[DELETE].count =")
+	assert.Equal(t, 1, router.stores.Get("DELETE").(*mockStore).count, "router.stores.Get(DELETE).count =")
 	group.CONNECT("/users")
-	assert.Equal(t, 1, router.stores["CONNECT"].(*mockStore).count, "router.stores[CONNECT].count =")
+	assert.Equal(t, 1, router.stores.Get("CONNECT").(*mockStore).count, "router.stores.Get(CONNECT).count =")
 	group.HEAD("/users")
-	assert.Equal(t, 1, router.stores["HEAD"].(*mockStore).count, "router.stores[HEAD].count =")
+	assert.Equal(t, 1, router.stores.Get("HEAD").(*mockStore).count, "router.stores.Get(HEAD).count =")
 	group.OPTIONS("/users")
-	assert.Equal(t, 1, router.stores["OPTIONS"].(*mockStore).count, "router.stores[OPTIONS].count =")
+	assert.Equal(t, 1, router.stores.Get("OPTIONS").(*mockStore).count, "router.stores.Get(OPTIONS).count =")
 	group.TRACE("/users")
-	assert.Equal(t, 1, router.stores["TRACE"].(*mockStore).count, "router.stores[TRACE].count =")
+	assert.Equal(t, 1, router.stores.Get("TRACE").(*mockStore).count, "router.stores.Get(TRACE).count =")
 }
 
 func TestRouteGroupGroup(t *testing.T) {
@@ -65,7 +65,7 @@ func TestRouteGroupGroup(t *testing.T) {
 	assert.Equal(t, 0, len(g1.handlers), "len(g1.handlers) =")
 	var buf bytes.Buffer
 	g2 := group.Group("", newHandler("1", &buf), newHandler("2", &buf))
-	assert.Equal(t, "/admin", g2.path, "g2.path =")
+	assert.Equal(t, "/admin/", g2.path, "g2.path =")
 	assert.Equal(t, 2, len(g2.handlers), "len(g2.handlers) =")
 
 	group2 := newRouteGroup("/admin", New(), []Handler{newHandler("1", &buf), newHandler("2", &buf)})
@@ -73,7 +73,7 @@ func TestRouteGroupGroup(t *testing.T) {
 	assert.Equal(t, "/admin/users", g3.path, "g3.path =")
 	assert.Equal(t, 2, len(g3.handlers), "len(g3.handlers) =")
 	g4 := group2.Group("", newHandler("3", &buf))
-	assert.Equal(t, "/admin", g4.path, "g4.path =")
+	assert.Equal(t, "/admin/", g4.path, "g4.path =")
 	assert.Equal(t, 1, len(g4.handlers), "len(g4.handlers) =")
 }
 

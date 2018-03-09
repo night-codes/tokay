@@ -76,8 +76,8 @@ func newHandler(tag string, buf *bytes.Buffer) Handler {
 func TestRouteAdd(t *testing.T) {
 	store := newMockStore()
 	router := New()
-	router.stores["GET"] = store
-	assert.Equal(t, 0, store.count, "router.stores[GET].count =")
+	router.stores.Set("GET", store)
+	assert.Equal(t, 0, store.count, "router.stores.Set(GET).count =")
 
 	var buf bytes.Buffer
 
@@ -100,34 +100,34 @@ func TestRouteMethods(t *testing.T) {
 	router := New()
 	for _, method := range Methods {
 		store := newMockStore()
-		router.stores[method] = store
-		assert.Equal(t, 0, store.count, "router.stores["+method+"].count =")
+		router.stores.Set(method, store)
+		assert.Equal(t, 0, store.count, "router.stores.Set("+method+", store).count =")
 	}
 	group := newRouteGroup("/admin", router, nil)
 
 	newRoute("/users", group).GET()
-	assert.Equal(t, 1, router.stores["GET"].(*mockStore).count, "router.stores[GET].count =")
+	assert.Equal(t, 1, router.stores.Get("GET").(*mockStore).count, "router.stores.Get(GET).count =")
 	newRoute("/users", group).POST()
-	assert.Equal(t, 1, router.stores["POST"].(*mockStore).count, "router.stores[POST].count =")
+	assert.Equal(t, 1, router.stores.Get("POST").(*mockStore).count, "router.stores.Get(POST).count =")
 	newRoute("/users", group).PATCH()
-	assert.Equal(t, 1, router.stores["PATCH"].(*mockStore).count, "router.stores[PATCH].count =")
+	assert.Equal(t, 1, router.stores.Get("PATCH").(*mockStore).count, "router.stores.Get(PATCH).count =")
 	newRoute("/users", group).PUT()
-	assert.Equal(t, 1, router.stores["PUT"].(*mockStore).count, "router.stores[PUT].count =")
+	assert.Equal(t, 1, router.stores.Get("PUT").(*mockStore).count, "router.stores.Get(PUT).count =")
 	newRoute("/users", group).DELETE()
-	assert.Equal(t, 1, router.stores["DELETE"].(*mockStore).count, "router.stores[DELETE].count =")
+	assert.Equal(t, 1, router.stores.Get("DELETE").(*mockStore).count, "router.stores.Get(DELETE).count =")
 	newRoute("/users", group).CONNECT()
-	assert.Equal(t, 1, router.stores["CONNECT"].(*mockStore).count, "router.stores[CONNECT].count =")
+	assert.Equal(t, 1, router.stores.Get("CONNECT").(*mockStore).count, "router.stores.Get(CONNECT).count =")
 	newRoute("/users", group).HEAD()
-	assert.Equal(t, 1, router.stores["HEAD"].(*mockStore).count, "router.stores[HEAD].count =")
+	assert.Equal(t, 1, router.stores.Get("HEAD").(*mockStore).count, "router.stores.Get(HEAD).count =")
 	newRoute("/users", group).OPTIONS()
-	assert.Equal(t, 1, router.stores["OPTIONS"].(*mockStore).count, "router.stores[OPTIONS].count =")
+	assert.Equal(t, 1, router.stores.Get("OPTIONS").(*mockStore).count, "router.stores.Get(OPTIONS).count =")
 	newRoute("/users", group).TRACE()
-	assert.Equal(t, 1, router.stores["TRACE"].(*mockStore).count, "router.stores[TRACE].count =")
+	assert.Equal(t, 1, router.stores.Get("TRACE").(*mockStore).count, "router.stores.Get(TRACE).count =")
 
 	newRoute("/posts", group).To("GET,POST")
-	assert.Equal(t, 2, router.stores["GET"].(*mockStore).count, "router.stores[GET].count =")
-	assert.Equal(t, 2, router.stores["POST"].(*mockStore).count, "router.stores[POST].count =")
-	assert.Equal(t, 1, router.stores["PUT"].(*mockStore).count, "router.stores[PUT].count =")
+	assert.Equal(t, 2, router.stores.Get("GET").(*mockStore).count, "router.stores.Get(GET).count =")
+	assert.Equal(t, 2, router.stores.Get("POST").(*mockStore).count, "router.stores.Get(POST).count =")
+	assert.Equal(t, 1, router.stores.Get("PUT").(*mockStore).count, "router.stores.Get(PUT).count =")
 }
 
 func TestBuildURLTemplate(t *testing.T) {
