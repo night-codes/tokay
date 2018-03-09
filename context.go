@@ -4,14 +4,15 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"github.com/night-codes/govalidator"
-	"github.com/night-codes/tokay-websocket"
-	"github.com/valyala/fasthttp"
 	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/night-codes/govalidator"
+	"github.com/night-codes/tokay-websocket"
+	"github.com/valyala/fasthttp"
 )
 
 // SerializeFunc serializes the given data of arbitrary type into a byte array.
@@ -96,14 +97,10 @@ func (c *Context) Websocket(fn func(), bufferSizes ...int) error {
 		bufferSizes = append(bufferSizes, bufferSizes[0])
 	}
 
-	if err := websocket.Upgrade(c.RequestCtx, func(conn *websocket.Conn) {
+	return websocket.Upgrade(c.RequestCtx, func(conn *websocket.Conn) {
 		c.WSConn = conn
 		fn()
-	}, bufferSizes[0], bufferSizes[1]); err != nil {
-		return err
-	}
-
-	return nil
+	}, bufferSizes[0], bufferSizes[1])
 }
 
 // FormFile returns uploaded file associated with the given multipart form key.
@@ -117,12 +114,12 @@ func (c *Context) FormFile(name string) (*multipart.FileHeader, error) {
 
 // SaveFormFile saves uploaded file associated with the given multipart
 // form key under the given filename path.
-func (c *Context) SaveFormFile(name, path string) error {
-	if fh, err := c.FormFile(name); fh != nil && err == nil {
+func (c *Context) SaveFormFile(name, path string) (err error) {
+	var fh *multipart.FileHeader
+	if fh, err = c.FormFile(name); fh != nil && err == nil {
 		return fasthttp.SaveMultipartFile(fh, path)
-	} else {
-		return err
 	}
+	return
 }
 
 // ClientIP returns the real client IP. It parses X-Real-IP and X-Forwarded-For in order to
@@ -502,12 +499,12 @@ func validate(err error, obj interface{}) error {
 	return err
 }
 
-// BindPostForm binds the passed struct pointer with JSON request body data
+// BindJSON binds the passed struct pointer with JSON request body data
 func (c *Context) BindJSON(obj interface{}) error {
 	return validate(json.Unmarshal(c.Response.Body(), obj), obj)
 }
 
-// BindPostForm binds the passed struct pointer with XML request body data
+// BindXML binds the passed struct pointer with XML request body data
 func (c *Context) BindXML(obj interface{}) error {
 	return validate(xml.Unmarshal(c.Response.Body(), obj), obj)
 }
