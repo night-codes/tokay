@@ -111,8 +111,6 @@ func New(config ...*Config) *Engine {
 		r = render.New()
 	}
 
-	debug.Println("Render object created" + r.Templates.DefinedTemplates())
-
 	engine := &Engine{
 		AppEngine:             AppEngine,
 		routes:                make(map[string]*Route),
