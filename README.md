@@ -44,13 +44,31 @@ import (
 )
 
 func main() {
-	r := tokay.New()
-	
-	r.GET("/", func(c *tokay.Context) {
-		c.String(200, "Hello, world!")
+	app := tokay.New()
+
+	// Methods:   GET, POST
+	// Resource: http://localhost:8080/
+	app.To("GET,POST", "/", func(c *tokay.Context) {
+		c.String(200, "Hello world!")
 	})
-	
-	panic(r.Run(":8080"))
+
+	// same as app.To("GET", "/ping", [...])
+	// Method:   GET
+	// Resource: http://localhost:8080/ping
+	app.GET("/ping", func(c *tokay.Context) {
+		c.String(200, "pong")
+	})
+
+	// Method:   GET
+	// Resource: http://localhost:8080/hello
+	app.GET("/hello", func(c *tokay.Context) {
+		c.JSON(200, map[string]interface{}{"message": "Hello world!"})
+	})
+
+	// http://localhost:8080
+	// http://localhost:8080/ping
+	// http://localhost:8080/hello
+	app.Run(":8080", "Application started at http://localhost%s")
 }
 ```
 
