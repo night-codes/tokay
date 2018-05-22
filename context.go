@@ -7,6 +7,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -166,6 +167,34 @@ func (c *Context) Param(name string) string {
 		}
 	}
 	return ""
+}
+
+// ParamInt returns the named integer parameter value that is found in the URL path matching the current route.
+// If the named parameter cannot be found, 0 will be returned.
+func (c *Context) ParamInt(name string) int {
+	i, _ := strconv.Atoi(c.Param(name))
+	return i
+}
+
+// ParamUint returns the named uint parameter value that is found in the URL path matching the current route.
+// If the named parameter cannot be found, 0 will be returned.
+func (c *Context) ParamUint(name string) uint {
+	i, _ := strconv.ParseUint(c.Param(name), 10, 0)
+	return uint(i)
+}
+
+// ParamFloat64 returns the named float64 parameter value that is found in the URL path matching the current route.
+// If the named parameter cannot be found, .0 will be returned.
+func (c *Context) ParamFloat64(name string) float64 {
+	f, _ := strconv.ParseFloat(c.Param(name), 64)
+	return f
+}
+
+// ParamBool returns the named float64 parameter value that is found in the URL path matching the current route.
+// If the named parameter cannot be found, `false` will be returned.
+func (c *Context) ParamBool(name string) bool {
+	b, _ := strconv.ParseBool(c.Param(name))
+	return b
 }
 
 // Get returns the named data item previously registered with the context by calling Set.
@@ -419,6 +448,34 @@ func (c *Context) PostFormArrayEx(key string) ([]string, bool) {
 // returns an empty string "".
 func (c *Context) Query(key string) string {
 	return string(c.QueryArgs().Peek(key))
+}
+
+// QueryInt returns the integer query value if it exists, otherwise it
+// returns 0
+func (c *Context) QueryInt(name string) int {
+	i, _ := strconv.Atoi(c.Query(name))
+	return i
+}
+
+// QueryUint returns the uint query value if it exists, otherwise it
+// returns 0
+func (c *Context) QueryUint(name string) uint {
+	i, _ := strconv.ParseUint(c.Query(name), 10, 0)
+	return uint(i)
+}
+
+// QueryFloat64 returns the float64 query value if it exists, otherwise it
+// returns .0
+func (c *Context) QueryFloat64(name string) float64 {
+	f, _ := strconv.ParseFloat(c.Query(name), 64)
+	return f
+}
+
+// QueryBool returns the boolean query value if it exists, otherwise it
+// returns `false`
+func (c *Context) QueryBool(name string) bool {
+	b, _ := strconv.ParseBool(c.Query(name))
+	return b
 }
 
 // QueryDefault returns the keyed url query value if it exists, otherwise
