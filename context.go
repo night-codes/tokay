@@ -28,7 +28,7 @@ type Context struct {
 	aborted  bool
 	pnames   []string        // list of route parameter names
 	pvalues  []string        // list of parameter values corresponding to pnames
-	data     dataMap         // data items managed by Get and Set
+	data     *dataMap        // data items managed by Get and Set
 	index    int             // the index of the currently executing handler in handlers
 	handlers []Handler       // the handlers associated with the current route
 	WSConn   *websocket.Conn // websocket connection
@@ -197,6 +197,17 @@ func (c *Context) ParamBool(name string) bool {
 	return b
 }
 
+// Copy context (instance will be contain copies of Request and Response)
+func (c *Context) Copy() *Context {
+	ret := *c
+	ret.init(&fasthttp.RequestCtx{})
+	c.Request.CopyTo(&ret.Request)
+	c.Response.CopyTo(&ret.Response)
+	ret.WSConn = c.WSConn
+	ret.data = c.data
+	return &ret
+}
+
 // Get returns the named data item previously registered with the context by calling Set.
 // If the named data item cannot be found, nil will be returned.
 func (c *Context) Get(name string) (value interface{}) {
@@ -312,7 +323,7 @@ func (c *Context) WriteData(data interface{}) (err error) {
 // init sets the request and response of the context and resets all other properties.
 func (c *Context) init(ctx *fasthttp.RequestCtx) {
 	c.RequestCtx = ctx
-	c.data = *newDataMap()
+	c.data = newDataMap()
 	c.index = -1
 	c.Serialize = Serialize
 }
