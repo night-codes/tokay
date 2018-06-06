@@ -2,6 +2,7 @@ package tokay
 
 import (
 	"bytes"
+
 	"github.com/valyala/fasthttp"
 )
 
@@ -29,11 +30,6 @@ func (r *RouterGroup) Path() (path string) {
 // GET adds a GET route to the engine with the given route path and handlers.
 func (r *RouterGroup) GET(path string, handlers ...Handler) *Route {
 	return newRoute(path, r).GET(handlers...)
-}
-
-// WEBSOCKET adds a WEBSOCKET route to the engine with the given route path and handlers.
-func (r *RouterGroup) WEBSOCKET(path string, handlers ...Handler) *Route {
-	return newRoute(path, r).WEBSOCKET(handlers...)
 }
 
 // POST adds a POST route to the engine with the given route path and handlers.

@@ -47,11 +47,6 @@ func (r *Route) GET(handlers ...Handler) *Route {
 	return r.add("GET", handlers)
 }
 
-// WEBSOCKET adds the route to the engine using the GET HTTP method with Websocket upgrade.
-func (r *Route) WEBSOCKET(handlers ...Handler) *Route {
-	return r.add("WEBSOCKET", handlers)
-}
-
 // POST adds the route to the engine using the POST HTTP method.
 func (r *Route) POST(handlers ...Handler) *Route {
 	return r.add("POST", handlers)
