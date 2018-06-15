@@ -55,8 +55,6 @@ type (
 
 	// Config is a struct for specifying configuration options for the tokay.Engine object.
 	Config struct {
-		// Enables automatic redirection if the current route can't be matched but a handler for the path with the trailing slash exists.
-		RedirectTrailingSlash bool
 		// Print debug messages to log
 		Debug bool
 		// Extensions to parse template files from. Defaults to [".html"].
@@ -93,7 +91,6 @@ var (
 // New creates a new Engine object.
 func New(config ...*Config) *Engine {
 	var r *render.Render
-	var cfgRedirectTrailingSlash bool
 	var cfgDebug bool
 	if len(config) != 0 && config[0] != nil {
 		if len(config[0].TemplatesDirs) != 0 {
@@ -105,7 +102,6 @@ func New(config ...*Config) *Engine {
 				},
 			})
 		}
-		cfgRedirectTrailingSlash = config[0].RedirectTrailingSlash
 		cfgDebug = config[0].Debug
 	} else {
 		r = render.New()
@@ -116,7 +112,7 @@ func New(config ...*Config) *Engine {
 		routes:                make(map[string]*Route),
 		stores:                *newStoresMap(),
 		Render:                r,
-		RedirectTrailingSlash: cfgRedirectTrailingSlash,
+		RedirectTrailingSlash: true,
 		Debug: cfgDebug,
 	}
 	engine.RouterGroup = *newRouteGroup("", engine, make([]Handler, 0))
@@ -294,31 +290,25 @@ func MethodNotAllowedHandler(c *Context) {
 }
 
 func redirectTrailingSlash(c *Context) bool {
+	if c.GetHeader("Redirect-Trailing-Slash") != "" {
+		return false
+	}
 	path := c.Path()
 	statusCode := 301 // Permanent redirect, request with GET method
 	if c.Method() != "GET" {
 		statusCode = 307
 	}
-	if len(path) == 0 {
-		c.Redirect(statusCode, "/")
-		return true
+
+	if length := len(path); length > 1 && path[length-1] == '/' {
+		path = path[:length-1]
+	} else {
+		path = path + "/"
 	}
 
-	pathSpl := strings.Split(path, "/")
-	d := 1
-	if path[len(path)-1] == '/' && len(pathSpl) > 1 {
-		d = 2
+	methods := c.Engine().findAllowedMethods(path)
+	if len(methods) == 0 {
+		return false
 	}
-	hasdot := strings.Index(pathSpl[len(pathSpl)-d], ".") != -1
-
-	if path[len(path)-1] != '/' && !hasdot {
-		c.Redirect(statusCode, path+"/")
-		return true
-	}
-	if path[len(path)-1] == '/' && hasdot {
-		c.Redirect(statusCode, path[:len(path)-1])
-		return true
-	}
-
-	return false
+	c.Redirect(statusCode, path)
+	return true
 }
