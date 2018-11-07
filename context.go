@@ -376,6 +376,12 @@ func (c *Context) XML(statusCode int, obj interface{}) {
 	c.engine.Render.XML(c.RequestCtx, statusCode, obj)
 }
 
+// JS renders the JS template specified by its file name.
+// It also updates the HTTP code and sets the Content-Type as "text/javascript".
+func (c *Context) JS(statusCode int, name string, obj interface{}) {
+	c.engine.Render.JS(c.RequestCtx, statusCode, name, obj)
+}
+
 // String writes the given string into the response body.
 func (c *Context) String(statusCode int, format string, values ...interface{}) {
 	c.SetStatusCode(statusCode)
