@@ -23,6 +23,7 @@ type (
 		JSONP(*fasthttp.RequestCtx, int, string, interface{}) error
 		HTML(*fasthttp.RequestCtx, int, string, interface{}, ...string) error
 		XML(*fasthttp.RequestCtx, int, interface{}) error
+		JS(*fasthttp.RequestCtx, int, string, interface{}, ...string) error
 	}
 
 	// Handler is the function for handling HTTP requests.
