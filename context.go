@@ -575,12 +575,12 @@ func validate(err error, obj interface{}) error {
 
 // BindJSON binds the passed struct pointer with JSON request body data
 func (c *Context) BindJSON(obj interface{}) error {
-	return validate(json.Unmarshal(c.Response.Body(), obj), obj)
+	return validate(json.Unmarshal(c.Request.Body(), obj), obj)
 }
 
 // BindXML binds the passed struct pointer with XML request body data
 func (c *Context) BindXML(obj interface{}) error {
-	return validate(xml.Unmarshal(c.Response.Body(), obj), obj)
+	return validate(xml.Unmarshal(c.Request.Body(), obj), obj)
 }
 
 // BindPostForm binds the passed struct pointer with form data
