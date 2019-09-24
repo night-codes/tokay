@@ -101,6 +101,7 @@ func New(config ...*Config) *Engine {
 				Delims: render.Delims{
 					Left: config[0].LeftTemplateDelimiter,
 				},
+				Funcs: config[0].TemplatesFuncs,
 			})
 		}
 		cfgDebug = config[0].Debug
