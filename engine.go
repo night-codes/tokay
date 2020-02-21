@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/night-codes/tokay-render"
+	render "github.com/night-codes/tokay-render"
 	"github.com/valyala/fasthttp"
 )
 
@@ -38,6 +38,8 @@ type (
 		AppEngine bool
 		// Print debug messages to log
 		Debug bool
+		// fasthhtp server
+		Server *fasthttp.Server
 
 		// Enables automatic redirection if the current route can't be matched but a
 		// handler for the path with the trailing slash exists.
@@ -115,7 +117,8 @@ func New(config ...*Config) *Engine {
 		stores:                *newStoresMap(),
 		Render:                r,
 		RedirectTrailingSlash: true,
-		Debug: cfgDebug,
+		Debug:                 cfgDebug,
+		Server:                &fasthttp.Server{},
 	}
 	engine.RouterGroup = *newRouteGroup("", engine, make([]Handler, 0))
 	engine.NotFound(MethodNotAllowedHandler, NotFoundHandler)
@@ -146,24 +149,26 @@ func runmsg(addr string, ec chan error, message string) (err error) {
 }
 
 // Run attaches the engine to a fasthttp server and starts listening and serving HTTP requests.
-// It is a shortcut for fasthttp.ListenAndServe(addr, engine.HandleRequest) Note: this method will block the
+// It is a shortcut for engine.Server.ListenAndServe(addr, engine.HandleRequest) Note: this method will block the
 // calling goroutine indefinitely unless an error happens.
 func (engine *Engine) Run(addr string, message ...string) error {
 	ec := make(chan error)
 	go func() {
-		ec <- fasthttp.ListenAndServe(addr, engine.HandleRequest)
+		engine.Server.Handler = engine.HandleRequest
+		ec <- engine.Server.ListenAndServe(addr)
 	}()
 	return runmsg(addr, ec, append(message, "HTTP server started at %s")[0])
 }
 
 // RunTLS attaches the engine to a fasthttp server and starts listening and
 // serving HTTPS (secure) requests. It is a shortcut for
-// fasthttp.ListenAndServeTLS(addr, certFile, keyFile, engine.HandleRequest)
+// engine.Server.ListenAndServeTLS(addr, certFile, keyFile)
 // Note: this method will block the calling goroutine indefinitely unless an error happens.
 func (engine *Engine) RunTLS(addr string, certFile, keyFile string, message ...string) error {
 	ec := make(chan error)
 	go func() {
-		ec <- fasthttp.ListenAndServeTLS(addr, certFile, keyFile, engine.HandleRequest)
+		engine.Server.Handler = engine.HandleRequest
+		ec <- engine.Server.ListenAndServeTLS(addr, certFile, keyFile)
 	}()
 	return runmsg(addr, ec, append(message, "HTTPS server started at %s")[0])
 }
@@ -174,7 +179,8 @@ func (engine *Engine) RunTLS(addr string, certFile, keyFile string, message ...s
 func (engine *Engine) RunUnix(addr string, mode os.FileMode, message ...string) error {
 	ec := make(chan error)
 	go func() {
-		ec <- fasthttp.ListenAndServeUNIX(addr, mode, engine.HandleRequest)
+		engine.Server.Handler = engine.HandleRequest
+		ec <- engine.Server.ListenAndServeUNIX(addr, mode)
 	}()
 	return runmsg(addr, ec, append(message, "Unix server started at %s")[0])
 }
