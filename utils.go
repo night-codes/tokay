@@ -2,7 +2,6 @@ package tokay
 
 import (
 	"errors"
-	"github.com/valyala/fasthttp"
 	"io"
 	"os"
 	"path"
@@ -10,6 +9,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/valyala/fasthttp"
 )
 
 var (
@@ -148,6 +149,10 @@ func setWithProperType(valueKind reflect.Kind, valByte []byte, structField refle
 		return setFloatField(val, 64, structField)
 	case reflect.String:
 		structField.SetString(val)
+	case reflect.Ptr:
+		structField.Set(reflect.New(structField.Type().Elem()))
+		setWithProperType(structField.Elem().Kind(), valByte, structField.Elem())
+
 	default:
 		return errors.New("Unknown type")
 	}
