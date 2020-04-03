@@ -1,7 +1,7 @@
 package tokay
 
 import (
-	"bytes"
+	"strings"
 
 	"github.com/valyala/fasthttp"
 )
@@ -126,7 +126,8 @@ func (r *RouterGroup) Static(path, root string, compress ...bool) *Route {
 		Root:     root,
 		Compress: compress[0],
 		PathRewrite: func(ctx *fasthttp.RequestCtx) []byte {
-			return append([]byte{'/'}, bytes.TrimPrefix(ctx.Request.RequestURI(), []byte(group.path))...)
+			url := strings.Split(string(ctx.Request.RequestURI()), "?")[0]
+			return []byte("/" + strings.TrimPrefix(url, group.path))
 		},
 	}).NewRequestHandler()
 
