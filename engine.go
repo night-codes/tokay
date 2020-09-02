@@ -95,21 +95,21 @@ var (
 func New(config ...*Config) *Engine {
 	var r *render.Render
 	var cfgDebug bool
+	rCfg := &render.Config{}
 	if len(config) != 0 && config[0] != nil {
 		if len(config[0].TemplatesDirs) != 0 {
-			r = render.New(&render.Config{
+			rCfg = &render.Config{
 				Directories: config[0].TemplatesDirs,
 				Extensions:  config[0].TemplatesExtensions,
 				Delims: render.Delims{
 					Left: config[0].LeftTemplateDelimiter,
 				},
 				Funcs: config[0].TemplatesFuncs,
-			})
+			}
 		}
 		cfgDebug = config[0].Debug
-	} else {
-		r = render.New()
 	}
+	r = render.New(rCfg)
 
 	engine := &Engine{
 		AppEngine:             AppEngine,

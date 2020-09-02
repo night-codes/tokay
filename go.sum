@@ -8,6 +8,8 @@ github.com/klauspost/cpuid v1.2.1 h1:vJi+O/nMdFt0vqm8NZBI6wzALWdA2X+egi0ogNyrC/w
 github.com/klauspost/cpuid v1.2.1/go.mod h1:Pj4uuM528wm8OyEC2QMXAi2YiTZ96dNQPGgoMS4s3ek=
 github.com/night-codes/govalidator v1.0.2 h1:Zv8rBEpN+L4b5eBltS3lFYyIPMRR4mnlS0DH/M7JGCY=
 github.com/night-codes/govalidator v1.0.2/go.mod h1:exP0oLClQ5H3t1/toeDyEMf3xx/6ouwvOtSvSvQNgpk=
+github.com/night-codes/govalidator v1.0.4 h1:MPPrWKLDw0P1Dunqgoh4VCiOq8jjpW1RqjQ3XYQE52Q=
+github.com/night-codes/govalidator v1.0.4/go.mod h1:698OUuzQEHaly/WE4iDX2Zq9XUD9tlIubaKTtqDgJvE=
 github.com/night-codes/tokay-render v1.0.2 h1:llMZ9rqk7qcJdYxKKiXLTwgckmJjp6/jTDjYi/JHSx0=
 github.com/night-codes/tokay-render v1.0.2/go.mod h1:luRmj6jFl2hpI21p039tjz/E+z8v1zfZ6tH3Kmihj58=
 github.com/night-codes/tokay-websocket v1.0.0 h1:2/Dx6vSyMCxw6IkhhaODKQDgzJaF0BeQpp8mBNTVAGM=
