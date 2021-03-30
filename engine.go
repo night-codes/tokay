@@ -38,6 +38,8 @@ type (
 		AppEngine bool
 		// Print debug messages to log
 		Debug bool
+
+		DebugFunc func(*Context, time.Duration)
 		// fasthhtp server
 		Server *fasthttp.Server
 
@@ -60,6 +62,8 @@ type (
 	Config struct {
 		// Print debug messages to log
 		Debug bool
+		// DebugFunc is callback function that calls after context
+		DebugFunc func(*Context, time.Duration)
 		// Extensions to parse template files from. Defaults to [".html"].
 		TemplatesExtensions []string
 		// Directories to load templates. Default is ["templates"].
@@ -95,6 +99,7 @@ var (
 func New(config ...*Config) *Engine {
 	var r *render.Render
 	var cfgDebug bool
+	var cfgDebugFunc func(*Context, time.Duration)
 	rCfg := &render.Config{}
 	if len(config) != 0 && config[0] != nil {
 		if len(config[0].TemplatesDirs) != 0 {
@@ -108,6 +113,7 @@ func New(config ...*Config) *Engine {
 			}
 		}
 		cfgDebug = config[0].Debug
+		cfgDebugFunc = config[0].DebugFunc
 	}
 	r = render.New(rCfg)
 
@@ -118,6 +124,7 @@ func New(config ...*Config) *Engine {
 		Render:                r,
 		RedirectTrailingSlash: true,
 		Debug:                 cfgDebug,
+		DebugFunc:             cfgDebugFunc,
 		Server:                &fasthttp.Server{},
 	}
 	engine.RouterGroup = *newRouteGroup("", engine, make([]Handler, 0))
@@ -195,6 +202,9 @@ func (engine *Engine) HandleRequest(ctx *fasthttp.RequestCtx) {
 		c.Next()
 		engine.pool.Put(c)
 		engine.debug(fmt.Sprintf("%-21s | %d | %9v | %-7s %-25s ", time.Now().Format("2006/01/02 - 15:04:05"), c.Response.StatusCode(), time.Since(start), string(ctx.Method()), string(ctx.Path())))
+		if engine.DebugFunc != nil {
+			engine.DebugFunc(c, time.Since(start))
+		}
 	}
 	fin()
 }
