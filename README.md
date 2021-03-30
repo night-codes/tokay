@@ -1,4 +1,4 @@
-![Tokay](https://cdn.rawgit.com/night-codes/9160052050046367b8cd329c0250531d/raw/72544777a52ff1e8d60cdbcd7c504c440544b9a3/tokey.svg)
+![Tokay](https://cdn.rawgit.com/night-codes/9160052050046367b8cd329c0250531d/raw/8460a8be8978e5375ee566decde92e73e2ccb581/tokey.svg)
 
 
 [![GoDoc](https://img.shields.io/badge/godoc-reference-2299dd.svg)](https://pkg.go.dev/github.com/night-codes/tokay?tab=doc)
@@ -22,7 +22,7 @@ The package has the following features:
 
 ## Requirements
 
-Go 1.8 or above.
+Go 1.13 or above.
 
 ## Installation
 
