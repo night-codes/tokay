@@ -2,7 +2,7 @@
 
 
 [![GoDoc](https://img.shields.io/badge/godoc-reference-2299dd.svg)](https://pkg.go.dev/github.com/night-codes/tokay?tab=doc)
-[![Go Report](http://goreportcard.com/badge/night-codes/tokay)](http://goreportcard.com/report/night-codes/tokay)
+[![Go Report](https://img.shields.io/badge/go%20report-A+-brightgreen.svg?style=flat)](http://goreportcard.com/report/night-codes/tokay)
 [![github issues](https://img.shields.io/github/issues/night-codes/tokay.svg)](https://github.com/night-codes/tokay/issues?q=is%3Aopen+is%3Aissue)
 [![github closed issues](https://img.shields.io/github/issues-closed-raw/night-codes/tokay.svg)](https://github.com/night-codes/tokay/issues?q=is%3Aissue+is%3Aclosed)
 [![release](https://img.shields.io/github/release/night-codes/tokay.svg)](https://github.com/night-codes/tokay/releases)
