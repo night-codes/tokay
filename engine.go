@@ -1,8 +1,11 @@
 package tokay
 
 import (
+	"crypto/tls"
+	"errors"
 	"fmt"
 	"html/template"
+	"net"
 	"net/http"
 	"os"
 	"reflect"
@@ -39,7 +42,12 @@ type (
 		// Print debug messages to log
 		Debug bool
 
+		// DebugFunc is a middleware function
 		DebugFunc func(*Context, time.Duration)
+
+		// Close server
+		Close func() error
+
 		// fasthhtp server
 		Server *fasthttp.Server
 
@@ -56,6 +64,8 @@ type (
 		maxParams        int
 		notFound         []Handler
 		notFoundHandlers []Handler
+		// maxGracefulWaitTime is 'graceful shutdown' waiting duration
+		maxGracefulWaitTime time.Duration
 	}
 
 	// Config is a struct for specifying configuration options for the tokay.Engine object.
@@ -74,6 +84,8 @@ type (
 		RightTemplateDelimiter string
 		// Funcs is a slice of FuncMaps to apply to the template upon compilation. This is useful for helper functions. Defaults to [].
 		TemplatesFuncs template.FuncMap
+		// MaxGracefulWaitTime is 'graceful shutdown' waiting duration
+		MaxGracefulWaitTime time.Duration
 	}
 )
 
@@ -99,9 +111,13 @@ var (
 func New(config ...*Config) *Engine {
 	var r *render.Render
 	var cfgDebug bool
+	var maxGracefulWaitTime = 10 * time.Second
 	var cfgDebugFunc func(*Context, time.Duration)
 	rCfg := &render.Config{}
 	if len(config) != 0 && config[0] != nil {
+		if config[0].MaxGracefulWaitTime != 0 {
+			maxGracefulWaitTime = config[0].MaxGracefulWaitTime
+		}
 		if len(config[0].TemplatesDirs) != 0 {
 			rCfg = &render.Config{
 				Directories: config[0].TemplatesDirs,
@@ -126,6 +142,10 @@ func New(config ...*Config) *Engine {
 		Debug:                 cfgDebug,
 		DebugFunc:             cfgDebugFunc,
 		Server:                &fasthttp.Server{},
+		maxGracefulWaitTime:   maxGracefulWaitTime,
+		Close: func() error {
+			return errors.New("server is not runned")
+		},
 	}
 	engine.RouterGroup = *newRouteGroup("", engine, make([]Handler, 0))
 	engine.NotFound(MethodNotAllowedHandler, NotFoundHandler)
@@ -143,7 +163,7 @@ func runmsg(addr string, ec chan error, message string) (err error) {
 		select {
 		case err = <-ec:
 			return
-		case _ = <-time.Tick(time.Second / 4):
+		case <-time.After(time.Second / 4):
 			if strings.Contains(message, "%s") {
 				fmt.Printf(message+"\n", addr)
 			} else {
@@ -162,7 +182,7 @@ func (engine *Engine) Run(addr string, message ...string) error {
 	ec := make(chan error)
 	go func() {
 		engine.Server.Handler = engine.HandleRequest
-		ec <- engine.Server.ListenAndServe(addr)
+		ec <- listenAndServe(engine, addr)
 	}()
 	return runmsg(addr, ec, append(message, "HTTP server started at %s")[0])
 }
@@ -175,7 +195,7 @@ func (engine *Engine) RunTLS(addr string, certFile, keyFile string, message ...s
 	ec := make(chan error)
 	go func() {
 		engine.Server.Handler = engine.HandleRequest
-		ec <- engine.Server.ListenAndServeTLS(addr, certFile, keyFile)
+		ec <- listenAndServeTLS(engine, addr, certFile, keyFile)
 	}()
 	return runmsg(addr, ec, append(message, "HTTPS server started at %s")[0])
 }
@@ -190,6 +210,22 @@ func (engine *Engine) RunUnix(addr string, mode os.FileMode, message ...string) 
 		ec <- engine.Server.ListenAndServeUNIX(addr, mode)
 	}()
 	return runmsg(addr, ec, append(message, "Unix server started at %s")[0])
+}
+
+// Serve serves incoming connections from the given listener using the given handler.
+// Serve blocks until the given listener returns permanent error.
+func (engine *Engine) Serve(addr string, cfg *tls.Config, message ...string) error {
+	ec := make(chan error)
+	go func() {
+		ln, err := net.Listen("tcp4", addr)
+		if err != nil {
+			panic(err)
+		}
+
+		lnTls := tls.NewListener(ln, cfg)
+		ec <- fasthttp.Serve(lnTls, engine.HandleRequest)
+	}()
+	return runmsg(addr, ec, append(message, "Server started at %s")[0])
 }
 
 // HandleRequest handles the HTTP request.
