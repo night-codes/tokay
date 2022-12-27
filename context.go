@@ -1,7 +1,6 @@
 package tokay
 
 import (
-	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"mime/multipart"
@@ -11,8 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/night-codes/go-json"
 	"github.com/night-codes/govalidator"
-	"github.com/night-codes/tokay-websocket"
+	websocket "github.com/night-codes/tokay-websocket"
 	"github.com/valyala/fasthttp"
 )
 
@@ -88,9 +88,10 @@ func (c *Context) File(filepath string) {
 }
 
 // Websocket upgrades the HTTP server connection to the WebSocket protocol.
-//     conn, err := c.Websocket() // by default buffers size == 4096
-//     conn, err := c.Websocket(2048) // readBufSize & writeBufSize := 2048
-//     conn, err := c.Websocket(2048, 1024) // readBufSize := 2048, writeBufSize := 1024
+//
+//	conn, err := c.Websocket() // by default buffers size == 4096
+//	conn, err := c.Websocket(2048) // readBufSize & writeBufSize := 2048
+//	conn, err := c.Websocket(2048, 1024) // readBufSize := 2048, writeBufSize := 1024
 func (c *Context) Websocket(fn func(), bufferSizes ...int) error {
 	if len(bufferSizes) == 0 {
 		bufferSizes = append(bufferSizes, 4096, 4096)
@@ -276,7 +277,8 @@ func (c *Context) Abort() {
 
 // AbortWithStatus calls `Abort()` and writes the headers with the specified status code.
 // For example, a failed attempt to authenticate a request could use:
-//     context.AbortWithStatus(401).
+//
+//	context.AbortWithStatus(401).
 func (c *Context) AbortWithStatus(statusCode int) {
 	c.SetStatusCode(statusCode)
 	c.Abort()
